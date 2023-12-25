@@ -101,8 +101,12 @@ class DiscordClient(discord.Client):
         if url_title is None:
             output_message = f"Unable to add: {challenge_url} please check it is a valid Coding Challenge"
         else:
-            self.__add_to_json(url_title, challenge_url)
-            output_message = f"Added: {url_title}: {challenge_url}"
+            is_present = self.__add_to_json(url_title, challenge_url)
+            output_message = (
+                f"Added: {url_title}: {challenge_url}"
+                if is_present
+                else f"Already exists: {url_title}"
+            )
 
         return output_message
 
@@ -131,17 +135,22 @@ class DiscordClient(discord.Client):
         return title_array[0]
 
     def __add_to_json(self, title, url):
-        logger.info(f"Adding Title: {title} and URL: {url} to file.")
-
         file_path = "challenges.json"
         json_data = {"name": title, "url": url}
 
         data = self.__read_file(file_path)
 
-        # Append the new item to the JSON array
-        data["challenges"].append(json_data)
+        data_challenges = data["challenges"]
+        if not any(d["name"] == title and d["url"] == url for d in data_challenges):
+            logger.info(f"Adding Title: {title} and URL: {url} to file.")
+            # Append the new item to the JSON array
+            data["challenges"].append(json_data)
 
-        self.__write_file(file_path, data)
+            self.__write_file(file_path, data)
+            return True
+        else:
+            logger.error(f"Already exists: {title}")
+            return False
 
     def __read_file(self, file_path):
         logger.info(f"Reading {file_path}")
